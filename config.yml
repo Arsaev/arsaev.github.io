@@ -60,7 +60,7 @@ params:
     images: ["papermod-cover.png"]
 
     profileMode:
-        enabled: true
+        enabled: false
         title: PaperMod
         imageUrl: "#"
         imageTitle: my image
