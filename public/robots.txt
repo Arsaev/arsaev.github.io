@@ -1,0 +1,3 @@
+User-agent: *
+Disallow:
+Sitemap: https://arsaev.github.io/sitemap.xml

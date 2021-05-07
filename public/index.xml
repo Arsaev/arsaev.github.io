@@ -1,19 +1,31 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>My New Hugo Site</title>
-    <link>http://example.org/</link>
-    <description>Recent content on My New Hugo Site</description>
+    <title>Mago</title>
+    <link>https://arsaev.github.io/</link>
+    <description>Recent content on Mago</description>
+    <image>
+      <url>https://arsaev.github.io/papermod-cover.png</url>
+      <link>https://arsaev.github.io/papermod-cover.png</link>
+    </image>
     <generator>Hugo -- gohugo.io</generator>
-    <language>en-us</language>
-    <lastBuildDate>Thu, 06 May 2021 20:17:00 +0200</lastBuildDate><atom:link href="http://example.org/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 10 Mar 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://arsaev.github.io/index.xml" rel="self" type="application/rss+xml" />
     <item>
-      <title>First Post</title>
-      <link>http://example.org/posts/first-post/</link>
-      <pubDate>Thu, 06 May 2021 20:17:00 +0200</pubDate>
+      <title>Search</title>
+      <link>https://arsaev.github.io/search/</link>
+      <pubDate>Thu, 06 May 2021 21:04:38 +0200</pubDate>
       
-      <guid>http://example.org/posts/first-post/</guid>
+      <guid>https://arsaev.github.io/search/</guid>
       <description></description>
+    </item>
+    
+    <item>
+      <title>Rich Content</title>
+      <link>https://arsaev.github.io/posts/first-post/</link>
+      <pubDate>Sun, 10 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://arsaev.github.io/posts/first-post/</guid>
+      <description>A brief description of Hugo Shortcodes</description>
     </item>
     
   </channel>
