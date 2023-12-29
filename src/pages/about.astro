@@ -1,0 +1,23 @@
+---
+import { Image } from "astro:assets";
+
+import PageLayout from "@/layouts/Base";
+import aboutImg from "@/assets/me.jpeg";
+
+const meta = {
+	title: "About",
+	description: "I'm a starter theme for Astro.build",
+};
+---
+
+<PageLayout meta={meta}>
+	<div class="space-y-6">
+		<h1 class="title">About</h1>
+		<p>
+			Hey, I'm Magomed! This blog is like my digital playground for programming, electronics, music,
+			painting, and analog photography, or whatever catches my interest next week (I've got too many
+			hobbies). It's my virtual business card, offering a sporadic peek into my diverse world, all
+			in one spot, replacing my scattered social media accounts.
+		</p>
+	</div>
+</PageLayout>
