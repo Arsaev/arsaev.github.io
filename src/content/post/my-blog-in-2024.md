@@ -24,7 +24,7 @@ In a world where personal branding is emphasized, my blog is my way of just bein
 
 My blog isn't a grand stage; it's more like a small door. It might open to new opportunities or connect me with folks who resonate with what I share. Each post I write is a simple hello to what might come.
 
-**1. Improving a Little Each Time**
+**5. Improving a Little Each Time**
 
 Blogging, for me, is not just about sharing ideas. It's a way to get a bit better at writing and organizing my thoughts. With every post, I'm not building a blog empire – I'm just getting a tad better at an essential skill.
 
