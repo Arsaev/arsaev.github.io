@@ -1,6 +1,6 @@
 ---
 title: "Starting My Blog in 2024: A Simple Journey of Sharing"
-publishDate: "29 December 2024"
+publishDate: "29 December 2023"
 description: "Join me in 2024 as I share thoughts, DIY projects, and bits of my story in a cozy online space."
 tags: ["blog", "2024"]
 ---
