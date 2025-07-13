@@ -1,0 +1,49 @@
+---
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import BaseHead from "../components/BaseHead.astro";
+import { getCollection } from "astro:content";
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Art Gallery" description="Browse artworks by category and flair." />
+  </head>
+  <body class="w-full max-w-screen-md mx-auto my-4 dark:bg-neutral-800 dark:text-neutral-300 transition-colors duration-300">
+    <Header />
+    <main class="flex flex-col gap-8 px-4 md:px-0">
+      <section class="mb-8">
+        <h1 class="text-3xl font-bold mb-4">Art Categories</h1>
+        <ul class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Oil painting</a></li>
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Watercolor</a></li>
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Linoprints</a></li>
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Digital</a></li>
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Drawings</a></li>
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Plein Air</a></li>
+          <li><a href="#" class="block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition">Sketches</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2 class="text-2xl font-semibold mb-4">Artwork Gallery</h2>
+        {(
+          await getCollection("blog")
+        ).filter(post => post.data.flair === "artwork" && post.data.heroImage).length === 0 ? (
+          <p>No artwork posts found.</p>
+        ) : (
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {(
+              await getCollection("blog")
+            ).filter(post => post.data.flair === "artwork" && post.data.heroImage).map(post => (
+              <a href={`/blog/${post.slug}`} class="group block relative rounded overflow-hidden hadow transition">
+                <img src={post.data.heroImage} alt={post.data.title} class="w-[220px] h-auto max-h-[400px] object-contain mx-auto group-hover:scale-105 transition-transform" loading="lazy" />
+                <span class="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">{post.data.title}</span>
+              </a>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+    <Footer />
+  </body>
+</html>

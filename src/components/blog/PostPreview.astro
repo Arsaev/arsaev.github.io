@@ -10,9 +10,21 @@ type Props<Tag extends HTMLTag> = Polymorphic<{ as: Tag }> & {
 
 const { post, as: Tag = "div", withDesc = false } = Astro.props;
 const postDate = post.data.updatedDate ?? post.data.publishDate;
+const categories = post.data.categories ?? [];
+const flair = post.data.flair;
 ---
 
 <FormattedDate date={postDate} class="min-w-[120px] text-gray-600 dark:text-gray-400" />
+{flair && (
+  <span class="inline-block bg-blue-200 dark:bg-blue-700 text-xs text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded mr-2">{flair}</span>
+)}
+{categories.length > 0 && (
+  <div class="mb-1 flex flex-wrap gap-2">
+    {categories.map((cat: string) => (
+      <span class="inline-block bg-gray-200 dark:bg-gray-700 text-xs text-gray-700 dark:text-gray-200 px-2 py-0.5 rounded">{cat}</span>
+    ))}
+  </div>
+)}
 <Tag>
 	{post.data.draft && <span class="text-red-500">(Draft) </span>}
 	<a href={`/posts/${post.slug}/`} class="cactus-link group" data-astro-prefetch>

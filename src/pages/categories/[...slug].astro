@@ -9,31 +9,35 @@ import TagLink from '../../components/TagLink.astro';
 
 export async function getStaticPaths() {
 	const posts = await getCollection('blog');
-    const tags = posts.flatMap((post) => post.data.tags);
-    return tags.map((tag) => ({
-        params: { slug: tag },
-        props: { tag, posts: posts.filter((post) => post.data?.tags?.includes(tag as string)) },
+    const categories = posts.map((post) => post.data.category).filter(Boolean);
+    const uniqueCategories = Array.from(new Set(categories));
+    return uniqueCategories.map((category) => ({
+        params: { slug: category },
+        props: { category, posts: posts.filter((post) => post.data?.category === category) },
     }));
 }
-const {tag, posts} = Astro.props;
+const {category, posts} = Astro.props;
 type Post = CollectionEntry<'blog'>;
 ---
 
 <!doctype html>
 <html lang="en">
   <head>
-    <BaseHead title={tag as string} description={"Posts tagged with " + tag as string + "."} />
+    <BaseHead title={category as string} description={"Posts in category " + category as string + "."} />
   </head>
   <body class="w-full flex flex-col mx-auto max-w-screen-md min-h-dvh justify-between dark:bg-neutral-800 dark:text-neutral-300 transition-colors duration-300" >
     <Header />
     <main class="flex flex-col justify-center px-4">
-        <h2 class="w-full font-bold text-black dark:text-white mb-8">🗃️ Posts tagged with <span>
-            {tag}</span></h1>
+        <h2 class="w-full font-bold text-black dark:text-white mb-8">🗃️ Posts in category <span>
+            {category}</span></h2>
         <ul>
             {posts.map((post: Post) => (
                 <div class="flex gap-2 justify-between border-b pb-4">
               <div class="flex flex-col gap-4">
                 <FormattedDate date={post.data.pubDate} />
+                {post.data.flair && (
+                  <span class="inline-block bg-blue-200 dark:bg-blue-700 text-xs text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded mr-2">{post.data.flair}</span>
+                )}
                 <a class="font-bold text-lg" href={`/blog/${post.slug}`}>
                   {post.data.title}
                 </a>

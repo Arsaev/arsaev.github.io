@@ -8,9 +8,10 @@ import TagLink from "../components/TagLink.astro";
 
 type Props = CollectionEntry<"blog">["data"] & {
   category?: string;
+  flair?: string;
 };
 
-const { title, description, pubDate, heroImage, tags, category } = Astro.props;
+const { title, description, pubDate, heroImage, tags, category, flair } = Astro.props;
 
 ---
 
@@ -24,11 +25,14 @@ const { title, description, pubDate, heroImage, tags, category } = Astro.props;
       <article class="px-4">
         <div class="flex justify-between mb-6">
           <FormattedDate date={pubDate} />
-          <p class="text-gray-500 dark:text-neutral-400 text-xs font-medium tracking-wide">
-			  <span class="text-sm text-gray-500 dark:text-neutral-400">
-				Category: {category}
-			  </span>
-          </p>
+          <div class="flex flex-col items-end">
+            {flair && (
+              <span class="inline-block bg-blue-200 dark:bg-blue-700 text-xs text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded mb-1">{flair}</span>
+            )}
+            {category && (
+              <span class="text-sm text-gray-500 dark:text-neutral-400">Category: {category}</span>
+            )}
+          </div>
         </div>
         <h1 class="text-5xl mb-8">
           {title}
