@@ -8,17 +8,14 @@ let numberOfPostsToDisplay = 3;
 let recentPosts = posts.slice(0, numberOfPostsToDisplay);
 ---
 
-<div class="px-4 md:px-16 flex flex-col gap-4 mt-16">
-  <h3 class="font-medium text-base">Recent Publications</h3>
+<div class="px-4 md:px-0 flex flex-col gap-4 mt-16">
+  <h2 class="text-3xl font-bold mb-4">Recent Publications</h2>
   {
     recentPosts.map((post) => (
       <div class="flex gap-2 justify-between border-b pb-4">
         <div class="flex flex-col gap-4">
           {/* <p>{post.data.pubDate}</p> */}
           <FormattedDate date={post.data.pubDate} />
-          {post.data.flair && (
-            <span class="inline-block bg-blue-200 dark:bg-blue-700 text-xs text-blue-700 dark:text-blue-200 px-2 py-0.5 rounded mr-2">{post.data.flair}</span>
-          )}
           <a class="font-bold text-lg" href={`/blog/${post.slug}`}>
             {post.data.title}
           </a>
