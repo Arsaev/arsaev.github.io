@@ -1,6 +1,6 @@
 ---
 name: "Portrait of Bilbo"
-medium: "Oil painting"
+medium: "Oil"
 dimensions: "15x15 cm"
 year: 2025
 month: 6
