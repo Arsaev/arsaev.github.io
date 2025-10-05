@@ -8,6 +8,7 @@ const blog = defineCollection({
         pubDate: z.coerce.date(),
         updatedDate: z.coerce.date().optional(),
         heroImage: z.string().optional(),
+        category: z.string().optional(),
         tags: z.array(z.string()).optional(),
     }),
 });
@@ -29,4 +30,3 @@ const art = defineCollection({
 
 
 export const collections = { blog, art }
-

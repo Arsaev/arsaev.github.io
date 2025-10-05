@@ -1,0 +1,91 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import Header from '../../components/Header.astro';
+import TagLink from '../../components/TagLink.astro';
+
+type BlogPost = CollectionEntry<'blog'>;
+
+const slugify = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+export async function getStaticPaths() {
+  const posts = await getCollection('blog', ({ data }) => Boolean(data.category));
+  const categories = Array.from(
+    new Set(posts.map((post) => post.data.category!).filter(Boolean)),
+  );
+
+  return categories.map((category) => ({
+    params: { slug: [slugify(category)] },
+    props: {
+      category,
+      posts: posts
+        .filter((post) => post.data.category === category)
+        .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()),
+    },
+  }));
+}
+
+interface PageProps {
+  category: string;
+  posts: BlogPost[];
+}
+
+const { category, posts } = Astro.props as PageProps;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead
+      title={`Category: ${category}`}
+      description={`Posts filed under ${category}.`}
+    />
+  </head>
+  <body class="w-full flex flex-col mx-auto max-w-screen-md min-h-dvh justify-between dark:bg-neutral-800 dark:text-neutral-300 transition-colors duration-300">
+    <Header />
+    <main class="flex flex-col gap-8 px-4 pb-10">
+      <h1 class="text-3xl font-bold">Category: {category}</h1>
+      {posts.length === 0 ? (
+        <p>No posts found for this category.</p>
+      ) : (
+        <ul class="flex flex-col gap-6">
+          {posts.map((post) => (
+            <li class="flex gap-4 md:gap-6 border-b pb-6">
+              <div class="flex flex-col gap-3 flex-1">
+                <FormattedDate date={post.data.pubDate} />
+                <a class="font-semibold text-xl" href={`/blog/${post.slug}`}>
+                  {post.data.title}
+                </a>
+                {post.data.tags && post.data.tags.length > 0 && (
+                  <div class="flex flex-wrap gap-2">
+                    {post.data.tags.map((tag) => (
+                      <TagLink tag={tag} />
+                    ))}
+                  </div>
+                )}
+              </div>
+              {post.data.heroImage && (
+                <a href={`/blog/${post.slug}`} class="shrink-0 hidden sm:block">
+                  <img
+                    src={post.data.heroImage}
+                    alt=""
+                    class="w-40 h-24 object-cover border border-gray-200 dark:border-neutral-700 rounded"
+                    loading="lazy"
+                  />
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+    <Footer />
+  </body>
+</html>
