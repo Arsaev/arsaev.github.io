@@ -24,7 +24,8 @@ const art = defineCollection({
         heroImage: z.string(),
         author: z.string(),
         text: z.string(),
-        status: z.string().optional(), // Sold/Available
+        status: z.string().optional(), // Sold/Available; missing status means available.
+        visibility: z.enum(['public', 'private']).default('public'),
     }),
 });
 

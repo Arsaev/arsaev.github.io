@@ -8,20 +8,6 @@ import { getCollection } from 'astro:content';
 import ArtGallery from '../components/ArtGallery.astro';
 const artItems = await getCollection('art');
 
-function slugify(str) {
-  return str ? str.toLowerCase().replace(/\s+/g, '-') : '';
-}
-const selectedMedium = 'All';
-const mediums = Array.from(new Set(artItems.map(a => a.data.medium).filter(Boolean)));
-mediums.unshift('All');
-
-artItems.sort((a, b) => {
-  if (a.data.year !== b.data.year) return b.data.year - a.data.year;
-  return b.data.month - a.data.month;
-});
-
-// short by 20 most recent
-artItems.splice(20);
 ---
 
 <!doctype html>
@@ -48,18 +34,9 @@ artItems.splice(20);
       <div class="px-4 md:px-0 mt-10">
       <section class="mb-8">
         <h2 class="text-3xl font-bold mb-4">Most recent art</h2>
-        <ul class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {mediums.map(m => (
-            <li>
-              <a href={slugify(m) === 'all' ? '/art' : `/art/${slugify(m)}`}
-                class={`block p-3 rounded bg-gray-100 dark:bg-neutral-700 hover:bg-gray-200 dark:hover:bg-neutral-600 transition${selectedMedium === m ? ' ring-2 ring-blue-500' : ''}`}>
-                {m}
-              </a>
-            </li>
-          ))}
-        </ul>
+
       </section>
-      <ArtGallery artItems={artItems} />
+      <ArtGallery artItems={artItems} limit={20} />
     </div>
     <RecentPublications />
         </main>

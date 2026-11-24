@@ -32,3 +32,17 @@ npm run dev
 ## Credits
 This project was builds on top of [void-astro](https://github.com/eAntillon/void-astro) byErick Antillón(s)
 
+
+## Gallery controls and private paintings
+
+All galleries share searchable Medium multiselect, availability and date controls. Missing status means available; `status: "Sold"` marks a sold painting. Dates use the existing year/month fields. The homepage shows up to 20 matching paintings.
+
+Add `visibility: private` to a painting's frontmatter to hide it until the private collection is unlocked. Existing paintings remain public. Private image requests are deferred until the painting is revealed.
+
+Share `/art#password=URL_ENCODED_PASSWORD` to unlock automatically. `?password=…` is also supported, but fragments avoid sending the password to hosting logs. The password is removed from the address bar immediately; the unlock lasts for the current tab session. Filters can also be shared with repeated `medium` parameters, `status=sold` or `status=available`, and `order=oldest` (default newest).
+
+Passwords are verified with Web Crypto PBKDF2-SHA-256, a random 16-byte salt and 600,000 iterations, requiring HTTPS or localhost. To add or rotate passwords, run `node scripts/art-password.mjs`, enter the password on stdin and end input with Ctrl-D. Copy the resulting verifier into the `accessKeys` array in `src/utils/art-access.js`; each entry unlocks the same private collection. Only salted hashes are committed.
+
+This is a static-site browsing gate: the HTML, JavaScript and image files are public, and a visitor can bypass client-side hiding. Use authenticated hosting if the images need actual access protection.
+
+Run the focused regression check with `node scripts/check-art.mjs`.

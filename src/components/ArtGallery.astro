@@ -1,10 +1,41 @@
 ---
-const { artItems } = Astro.props;
+const { artItems, selectedMedium = '', limit } = Astro.props;
+const mediums = [...new Set(artItems.map(art => art.data.medium))].sort();
+artItems.sort((a, b) => b.data.year - a.data.year || b.data.month - a.data.month);
 ---
+<div id="gallery-controls" data-medium={selectedMedium} data-limit={limit}>
+  <div class="filter-row">
+    <details id="medium-filter">
+      <summary>Medium <span id="medium-count">All</span></summary>
+      <div class="medium-options">
+        <label for="medium-search">Search materials</label>
+        <input id="medium-search" type="search" placeholder="Search mediums…" autocomplete="off" />
+        <button type="button" id="clear-mediums">Clear selection</button>
+        <div id="medium-options">
+          {mediums.map(medium => <label class="medium-option"><input type="checkbox" value={medium} />{medium}</label>)}
+        </div>
+        <p id="no-mediums" hidden>No matching mediums.</p>
+      </div>
+    </details>
+    <label class="select-filter">Availability
+      <select id="art-status"><option value="">All paintings</option><option value="available">Available</option><option value="sold">Sold</option></select>
+    </label>
+    <label class="select-filter">Date
+      <select id="art-order"><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select>
+    </label>
+    <button type="button" id="private-toggle">Unlock private</button>
+  </div>
+  <form id="private-form" hidden>
+    <label for="private-password">Private collection password</label>
+    <div class="password-row"><input id="private-password" type="password" autocomplete="current-password" required /><button type="submit">Unlock</button></div>
+    <p id="private-message" role="status"></p>
+  </form>
+  <p id="gallery-count" class="text-sm text-gray-500" aria-live="polite"></p>
+</div>
 <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="art-gallery">
   {artItems.map(art => (
-    <div class="relative group">
-      <img src={art.data.heroImage} alt={art.data.name} class="w-full h-auto object-contain rounded shadow-lg cursor-pointer art-image" loading="lazy" data-art={JSON.stringify(art.data)} />
+    <div class="relative group art-card" hidden={art.data.visibility === 'private'} data-art={JSON.stringify(art.data)}>
+      <img src={art.data.visibility === 'private' ? undefined : art.data.heroImage} data-src={art.data.heroImage} alt={art.data.name} class="w-full h-auto object-contain rounded shadow-lg cursor-pointer art-image" loading="lazy" data-art={JSON.stringify(art.data)} />
       <div class="mt-2">
         <h2 class="text-xl font-semibold">{art.data.name}</h2>
         <p class="text-sm text-gray-500">{art.data.medium} • {art.data.year}/{art.data.month}</p>
@@ -15,13 +46,13 @@ const { artItems } = Astro.props;
   ))}
 </section>
 
-<div id="softbox" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 py-4 md:py-0 hidden">
+<div id="softbox" role="dialog" aria-modal="true" aria-label="Painting details" tabindex="-1" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 py-4 md:py-0 hidden">
   <div class="bg-white dark:bg-neutral-900 rounded-lg shadow-2xl flex flex-col md:flex-row w-11/12 max-w-5xl overflow-auto" style="max-height: 95vh;">
     <div class="md:w-3/4 w-full p-4 flex items-center justify-center">
-      <img id="softbox-img" src="" alt="" class="w-auto h-auto object-contain rounded" style="max-height: 90vh; max-width: 100%;" />
+      <img id="softbox-img" alt="" class="w-auto h-auto object-contain rounded" style="max-height: 90vh; max-width: 100%;" />
     </div>
     <div class="md:w-1/4 w-full p-6 flex flex-col gap-2">
-      <button class="self-end text-2xl" id="softbox-close">&times;</button>
+      <button class="self-end text-2xl" id="softbox-close" aria-label="Close painting">&times;</button>
       <h2 class="text-2xl font-bold mb-2" id="softbox-name"></h2>
       <p><strong>Medium:</strong> <span id="softbox-medium"></span></p>
       <p><strong>Dimensions:</strong> <span id="softbox-dimensions"></span></p>
@@ -34,7 +65,122 @@ const { artItems } = Astro.props;
 </div>
 
 <script>
+  import { accessKeys, matchesArt, verifyArtPassword } from '../utils/art-access.js';
   document.addEventListener('DOMContentLoaded', () => {
+    const controls = document.getElementById('gallery-controls')!;
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('.art-card'));
+    const checks = Array.from(document.querySelectorAll<HTMLInputElement>('#medium-options input'));
+    const statusFilter = document.querySelector<HTMLSelectElement>('#art-status')!;
+    const order = document.querySelector<HTMLSelectElement>('#art-order')!;
+    const passwordForm = document.querySelector<HTMLFormElement>('#private-form')!;
+    const passwordInput = document.querySelector<HTMLInputElement>('#private-password')!;
+    const message = document.getElementById('private-message')!;
+    const toggle = document.getElementById('private-toggle')!;
+    const params = new URLSearchParams(location.search);
+    let unlocked = false;
+    // Remember the browsing unlock for this tab without storing the plaintext password.
+    const storageKey = 'art-private-verifier';
+    const initialMediums = params.has('medium') ? params.getAll('medium') : [controls.dataset.medium];
+    checks.forEach(check => check.checked = initialMediums.includes(check.value));
+    statusFilter.value = ['sold', 'available'].includes(params.get('status') || '') ? params.get('status')! : '';
+    order.value = params.get('order') === 'oldest' ? 'oldest' : 'newest';
+
+    function render(updateUrl = false) {
+      const selected = checks.filter(check => check.checked).map(check => check.value);
+      const sorted = [...cards].sort((a, b) => {
+        const left = JSON.parse(a.dataset.art!);
+        const right = JSON.parse(b.dataset.art!);
+        return (right.year - left.year || right.month - left.month) * (order.value === 'oldest' ? -1 : 1);
+      });
+      let count = 0;
+      const limit = Number(controls.dataset.limit) || Infinity;
+      for (const card of sorted) {
+        const art = JSON.parse(card.dataset.art!);
+        const match = matchesArt(art, selected, statusFilter.value, unlocked);
+        card.hidden = !match || count >= limit;
+        if (match) count++;
+        if (!card.hidden) {
+          const image = card.querySelector<HTMLImageElement>('img')!;
+          if (!image.getAttribute('src')) image.src = image.dataset.src!;
+        }
+        card.parentElement!.append(card);
+      }
+      document.getElementById('medium-count')!.textContent = selected.length ? String(selected.length) : 'All';
+      document.getElementById('gallery-count')!.textContent = count ? `${Math.min(count, limit)} painting${Math.min(count, limit) === 1 ? '' : 's'}` : 'No paintings match these filters.';
+      if (updateUrl) {
+        const url = new URL(location.href);
+        url.pathname = location.pathname.startsWith('/art/') ? '/art' : location.pathname;
+        url.searchParams.delete('medium');
+        selected.forEach(value => url.searchParams.append('medium', value));
+        for (const [key, value] of [['status', statusFilter.value], ['order', order.value === 'oldest' ? 'oldest' : '']]) {
+          if (value) url.searchParams.set(key, value); else url.searchParams.delete(key);
+        }
+        history.replaceState(null, '', url);
+      }
+    }
+    checks.forEach(check => check.addEventListener('change', () => render(true)));
+    [statusFilter, order].forEach(select => select.addEventListener('change', () => render(true)));
+    document.getElementById('clear-mediums')!.onclick = () => { checks.forEach(check => check.checked = false); render(true); };
+    document.querySelector<HTMLInputElement>('#medium-search')!.addEventListener('input', event => {
+      const query = (event.target as HTMLInputElement).value.trim().toLowerCase();
+      checks.forEach(check => check.parentElement!.hidden = !check.value.toLowerCase().includes(query));
+      document.getElementById('no-mediums')!.hidden = checks.some(check => !check.parentElement!.hidden);
+    });
+    const details = document.querySelector<HTMLDetailsElement>('#medium-filter')!;
+    document.addEventListener('click', event => { if (!details.contains(event.target as Node)) details.open = false; });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') { details.open = false; passwordForm.hidden = true; } });
+    toggle.onclick = () => {
+      if (unlocked) {
+        unlocked = false;
+        try { sessionStorage.removeItem(storageKey); } catch { /* Storage may be disabled. */ }
+        toggle.textContent = 'Unlock private';
+        document.getElementById('softbox')!.classList.add('hidden');
+        document.getElementById('softbox-img')!.removeAttribute('src');
+        render();
+      } else {
+        passwordForm.hidden = !passwordForm.hidden;
+        if (!passwordForm.hidden) passwordInput.focus();
+      }
+    };
+    async function unlock(password: string) {
+      const submit = passwordForm.querySelector<HTMLButtonElement>('button')!;
+      submit.disabled = true;
+      message.textContent = 'Checking password…';
+      try {
+        if (!await verifyArtPassword(password)) { message.textContent = 'Incorrect password.'; return; }
+        unlocked = true;
+        // A session token avoids keeping the plaintext password in browser storage.
+        try { sessionStorage.setItem(storageKey, accessKeys.map(key => key.hash).join(':')); } catch { /* Unlock still works without storage. */ }
+        passwordInput.value = '';
+        passwordForm.hidden = true;
+        toggle.textContent = 'Lock private';
+        render();
+      } catch {
+        message.textContent = 'Could not check the password. Please use HTTPS and try again.';
+        passwordForm.hidden = false;
+      } finally { submit.disabled = false; }
+    }
+    passwordForm.addEventListener('submit', event => { event.preventDefault(); void unlock(passwordInput.value); });
+    render();
+    void (async () => {
+      try {
+        unlocked = sessionStorage.getItem(storageKey) === accessKeys.map(key => key.hash).join(':');
+      } catch { /* Storage may be disabled. */ }
+      toggle.textContent = unlocked ? 'Lock private' : 'Unlock private';
+      render();
+      const fragment = new URLSearchParams(location.hash.slice(1));
+      const password = fragment.get('password') || params.get('password');
+      if (password) {
+        // Remove URL credentials immediately; fragments are preferred because servers never receive them.
+        const url = new URL(location.href);
+        url.searchParams.delete('password');
+        fragment.delete('password');
+        url.hash = fragment.toString();
+        history.replaceState(null, '', url);
+        await unlock(password);
+        if (!unlocked) passwordForm.hidden = false;
+      }
+    })();
     const images = document.querySelectorAll('.art-image');
     const softbox = document.getElementById('softbox');
     const closeBtn = document.getElementById('softbox-close');
@@ -73,6 +219,20 @@ const { artItems } = Astro.props;
     closeBtn.onclick = () => {
       softbox.classList.add('hidden');
     };
+    let lastImage;
+    images.forEach(image => image.addEventListener('click', () => { lastImage = image; softbox.focus(); }));
+    document.addEventListener('keydown', event => {
+      if (softbox.classList.contains('hidden')) return;
+      if (event.key === 'Escape') { softbox.classList.add('hidden'); lastImage?.focus(); }
+      if (event.key === 'Tab') { event.preventDefault(); closeBtn.focus(); }
+    });
+    images.forEach(image => {
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); image.click(); }
+      });
+    });
     // Close softbox if click away
     if (softbox) {
       softbox.addEventListener('click', (e) => {
@@ -83,3 +243,27 @@ const { artItems } = Astro.props;
     }
   });
 </script>
+
+<style>
+  [hidden] { display: none !important; }
+  .filter-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .75rem; }
+  details { position: relative; }
+  summary, select, #private-toggle, #private-form button { border: 1px solid #737373; border-radius: .5rem; padding: .65rem .75rem; cursor: pointer; background: transparent; font-size: .875rem; }
+  summary { list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '⌄'; margin-left: .75rem; }
+  #medium-count { margin-left: .5rem; opacity: .7; }
+  .select-filter { display: flex; align-items: center; gap: .5rem; font-size: .875rem; }
+  select { appearance: none; padding-right: 1.7rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right .4rem center; }
+  option { color: #171717; background: white; }
+  .medium-options { position: absolute; top: calc(100% + .5rem); left: 0; z-index: 20; width: 16rem; padding: 1rem; border: 1px solid #737373; border-radius: .5rem; background: white; color: #171717; box-shadow: 0 8px 24px #0003; }
+  .medium-options > label { font-size: .875rem; }
+  input[type='search'], input[type='password'] { width: 100%; padding: .5rem; border: 1px solid #737373; border-radius: .375rem; background: transparent; }
+  #medium-options { max-height: 18rem; overflow-y: auto; }
+  .medium-option { display: flex; gap: .6rem; align-items: center; padding: .5rem 0; cursor: pointer; }
+  #clear-mediums { text-decoration: underline; font-size: .875rem; margin: .5rem 0; }
+  #private-form { margin: 1rem 0; max-width: 28rem; }
+  .password-row { display: flex; gap: .5rem; margin: .5rem 0; }
+  :global(.dark) .medium-options { background: #262626; color: #d4d4d4; }
+  :focus-visible { outline: 2px solid #3b82f6; outline-offset: 3px; }
+</style>
