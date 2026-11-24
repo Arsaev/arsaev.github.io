@@ -46,3 +46,18 @@ Passwords are verified with Web Crypto PBKDF2-SHA-256, a random 16-byte salt and
 This is a static-site browsing gate: the HTML, JavaScript and image files are public, and a visitor can bypass client-side hiding. Use authenticated hosting if the images need actual access protection.
 
 Run the focused regression check with `node scripts/check-art.mjs`.
+
+## Painting images and carousel
+
+`heroImage` stays the gallery preview and the first image in the viewer. Add optional close-ups to a painting's frontmatter:
+
+```yaml
+heroImage: "/artworks/painting.jpeg"
+closeups:
+  - src: "/artworks/painting-detail.jpeg"
+    alt: "Close-up of the brushwork on the hand"
+  - src: "/artworks/painting-texture.jpeg"
+    alt: "Detail of the paint texture"
+```
+
+Choose thumbnails to inspect details. Use Previous/Next painting, Left/Right keys, or swipe horizontally across the viewer to browse paintings without closing the viewer. Navigation wraps and follows the visible gallery's filters, date order and homepage limit. Escape closes the viewer.

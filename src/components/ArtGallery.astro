@@ -46,13 +46,24 @@ artItems.sort((a, b) => b.data.year - a.data.year || b.data.month - a.data.month
   ))}
 </section>
 
-<div id="softbox" role="dialog" aria-modal="true" aria-label="Painting details" tabindex="-1" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 py-4 md:py-0 hidden">
-  <div class="bg-white dark:bg-neutral-900 rounded-lg shadow-2xl flex flex-col md:flex-row w-11/12 max-w-5xl overflow-auto" style="max-height: 95vh;">
-    <div class="md:w-3/4 w-full p-4 flex items-center justify-center">
-      <img id="softbox-img" alt="" class="w-auto h-auto object-contain rounded" style="max-height: 90vh; max-width: 100%;" />
+<dialog id="softbox" aria-label="Painting details" class="bg-transparent p-0 w-11/12 max-w-5xl dark:text-neutral-300">
+  <div class="viewer-close-row">
+    <button type="button" id="softbox-close" aria-label="Close painting">&times;</button>
+  </div>
+  <div class="bg-white dark:bg-neutral-900 rounded-lg shadow-2xl w-full overflow-auto" style="max-height: calc(95dvh - 3.25rem);">
+    <div class="viewer-toolbar bg-white dark:bg-neutral-900">
+      <nav class="painting-navigation" aria-label="Browse paintings">
+        <button type="button" id="painting-previous" aria-label="Previous painting">Previous</button>
+        <p id="painting-position" class="text-sm" aria-live="polite"></p>
+        <button type="button" id="painting-next" aria-label="Next painting">Next</button>
+      </nav>
+    </div>
+    <div id="painting-content" class="flex flex-col md:flex-row">
+    <div class="md:w-3/4 w-full p-4 flex flex-col items-center justify-center gap-3">
+      <img id="softbox-img" alt="" class="w-auto h-auto object-contain rounded" style="max-height: 70vh; max-width: 100%;" />
+      <div id="softbox-images" class="image-thumbnails" role="group" aria-label="Painting images"></div>
     </div>
     <div class="md:w-1/4 w-full p-6 flex flex-col gap-2">
-      <button class="self-end text-2xl" id="softbox-close" aria-label="Close painting">&times;</button>
       <h2 class="text-2xl font-bold mb-2" id="softbox-name"></h2>
       <p><strong>Medium:</strong> <span id="softbox-medium"></span></p>
       <p><strong>Dimensions:</strong> <span id="softbox-dimensions"></span></p>
@@ -61,8 +72,9 @@ artItems.sort((a, b) => b.data.year - a.data.year || b.data.month - a.data.month
       <p id="softbox-status" class="font-semibold"></p>
       <p class="mt-4" id="softbox-text"></p>
     </div>
+    </div>
   </div>
-</div>
+</dialog>
 
 <script>
   import { accessKeys, matchesArt, verifyArtPassword } from '../utils/art-access.js';
@@ -134,8 +146,7 @@ artItems.sort((a, b) => b.data.year - a.data.year || b.data.month - a.data.month
         unlocked = false;
         try { sessionStorage.removeItem(storageKey); } catch { /* Storage may be disabled. */ }
         toggle.textContent = 'Unlock private';
-        document.getElementById('softbox')!.classList.add('hidden');
-        document.getElementById('softbox-img')!.removeAttribute('src');
+        closeViewer();
         render();
       } else {
         passwordForm.hidden = !passwordForm.hidden;
@@ -181,70 +192,178 @@ artItems.sort((a, b) => b.data.year - a.data.year || b.data.month - a.data.month
         if (!unlocked) passwordForm.hidden = false;
       }
     })();
-    const images = document.querySelectorAll('.art-image');
-    const softbox = document.getElementById('softbox');
-    const closeBtn = document.getElementById('softbox-close');
-    const img = document.getElementById('softbox-img');
-    const name = document.getElementById('softbox-name');
-    const medium = document.getElementById('softbox-medium');
-    const dimensions = document.getElementById('softbox-dimensions');
-    const date = document.getElementById('softbox-date');
-    const author = document.getElementById('softbox-author');
-    const text = document.getElementById('softbox-text');
-    const status = document.getElementById('softbox-status');
+    const images = document.querySelectorAll<HTMLImageElement>('.art-image');
+    const softbox = document.querySelector<HTMLDialogElement>('#softbox')!;
+    const closeBtn = document.querySelector<HTMLButtonElement>('#softbox-close')!;
+    const img = document.querySelector<HTMLImageElement>('#softbox-img')!;
+    const thumbnails = document.getElementById('softbox-images')!;
+    const previous = document.querySelector<HTMLButtonElement>('#painting-previous')!;
+    const next = document.querySelector<HTMLButtonElement>('#painting-next')!;
+    const content = document.getElementById('painting-content')!;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let slide: Animation | undefined;
+    let moving = false;
+    let navigationVersion = 0;
+    let activeCard: HTMLElement | undefined;
+    let scrollOverflow = '';
 
-    images.forEach(image => {
-      image.onclick = () => {
-        const data = JSON.parse(image.getAttribute('data-art'));
-        img.src = data.heroImage;
-        img.alt = data.name;
-        name.textContent = data.name;
-        medium.textContent = data.medium;
-        dimensions.textContent = data.dimensions;
-        date.textContent = `${data.year}/${data.month}`;
-        author.textContent = data.author;
-        text.textContent = data.text;
-        if (status) {
-          if (data.status) {
-            status.textContent = data.status;
-            status.style.display = '';
-          } else {
-            status.textContent = '';
-            status.style.display = 'none';
-          }
+    function closeViewer() {
+      softbox.close();
+    }
+    function showPainting(card: HTMLElement) {
+      const visible = Array.from(document.querySelectorAll<HTMLElement>('.art-card')).filter(item => !item.hidden);
+      if (!visible.includes(card)) return;
+      activeCard = card;
+      const data = JSON.parse(card.dataset.art!);
+      const photos = [{ src: data.heroImage, alt: data.name }, ...(data.closeups || [])];
+      img.src = photos[0].src;
+      img.alt = photos[0].alt;
+      for (const field of ['name', 'medium', 'dimensions', 'author', 'text', 'status']) {
+        document.getElementById(`softbox-${field}`)!.textContent = data[field] || '';
+      }
+      document.getElementById('softbox-date')!.textContent = `${data.year}/${data.month}`;
+      thumbnails.replaceChildren();
+      thumbnails.hidden = photos.length < 2;
+      photos.forEach((photo, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.setAttribute('aria-label', index === 0 ? 'Main image' : photo.alt);
+        button.setAttribute('aria-pressed', String(index === 0));
+        const thumbnail = document.createElement('img');
+        thumbnail.src = photo.src;
+        thumbnail.alt = '';
+        thumbnail.loading = 'lazy';
+        button.append(thumbnail);
+        button.onclick = () => {
+          img.src = photo.src;
+          img.alt = photo.alt;
+          thumbnails.querySelectorAll('button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+        };
+        thumbnails.append(button);
+      });
+      const position = visible.indexOf(card);
+      previous.disabled = next.disabled = visible.length < 2;
+      document.getElementById('painting-position')!.textContent = `${position + 1} of ${visible.length}`;
+      if (!softbox.open) {
+        scrollOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        softbox.showModal();
+      }
+    }
+    async function movePainting(direction: number) {
+      if (moving) return;
+      // Read DOM order after filtering/sorting; hidden and locked paintings never enter the carousel.
+      const visible = Array.from(document.querySelectorAll<HTMLElement>('.art-card')).filter(card => !card.hidden);
+      if (visible.length < 2) { content.style.transform = ''; return; }
+      const position = visible.indexOf(activeCard!);
+      const target = visible[(position + direction + visible.length) % visible.length];
+      if (reducedMotion.matches) { content.style.transform = ''; showPainting(target); return; }
+      moving = true;
+      const version = ++navigationVersion;
+      try {
+        slide?.cancel();
+        slide = content.animate([
+          { transform: content.style.transform || 'translateX(0)', opacity: 1 },
+          { transform: `translateX(${-direction * 100}%)`, opacity: 0 },
+        ], { duration: 140, easing: 'ease-in', fill: 'forwards' });
+        await slide.finished;
+        if (version !== navigationVersion || !softbox.open) return;
+        showPainting(target);
+        content.style.transform = '';
+        slide.cancel();
+        slide = content.animate([
+          { transform: `translateX(${direction * 100}%)`, opacity: 0 },
+          { transform: 'translateX(0)', opacity: 1 },
+        ], { duration: 180, easing: 'ease-out' });
+        await slide.finished;
+      } catch { /* Closing the viewer cancels the active animation. */ }
+      finally {
+        if (version === navigationVersion) { slide?.cancel(); slide = undefined; moving = false; content.style.transform = ''; }
+      }
+    }
+    previous.onclick = () => movePainting(-1);
+    next.onclick = () => movePainting(1);
+    closeBtn.onclick = closeViewer;
+    softbox.addEventListener('close', () => {
+      navigationVersion++;
+      slide?.cancel();
+      slide = undefined;
+      moving = false;
+      content.style.transform = '';
+      document.body.style.overflow = scrollOverflow;
+      img.removeAttribute('src');
+      thumbnails.replaceChildren();
+      activeCard = undefined;
+    });
+    softbox.addEventListener('click', event => { if (event.target === softbox) closeViewer(); });
+    softbox.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+        // Leave thumbnail button navigation alone while the visitor is choosing a close-up.
+        if (thumbnails.contains(event.target as Node)) return;
+        event.preventDefault();
+        movePainting(event.key === 'ArrowLeft' ? -1 : 1);
+      }
+    });
+    let touchStart: { x: number; y: number } | undefined;
+    softbox.addEventListener('touchstart', event => {
+      // Keep buttons and the horizontally scrolling close-up strip independent of painting swipes.
+      if (moving) return;
+      slide?.cancel();
+      if ((event.target as Element).closest('button, a, #softbox-images')) { touchStart = undefined; return; }
+      touchStart = event.touches.length === 1 ? { x: event.touches[0].clientX, y: event.touches[0].clientY } : undefined;
+    }, { passive: true });
+    softbox.addEventListener('touchmove', event => {
+      if (event.touches.length !== 1) { touchStart = undefined; content.style.transform = ''; return; }
+      if (!touchStart) return;
+      const dx = event.touches[0].clientX - touchStart.x;
+      const dy = event.touches[0].clientY - touchStart.y;
+      // Claim deliberate horizontal swipes while keeping vertical scrolling and pinch zoom native.
+      if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5 && event.cancelable) {
+        event.preventDefault();
+        if (!reducedMotion.matches && !next.disabled) content.style.transform = `translateX(${Math.max(-160, Math.min(160, dx))}px)`;
+      }
+    }, { passive: false });
+    softbox.addEventListener('touchend', event => {
+      if (!touchStart || !event.changedTouches.length) return;
+      const dx = event.changedTouches[0].clientX - touchStart.x;
+      const dy = event.changedTouches[0].clientY - touchStart.y;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) void movePainting(dx < 0 ? 1 : -1);
+      else {
+        if (content.style.transform && !reducedMotion.matches) {
+          slide = content.animate([{ transform: content.style.transform }, { transform: 'translateX(0)' }], { duration: 160, easing: 'ease-out' });
         }
-        softbox.classList.remove('hidden');
-      };
-    });
-    closeBtn.onclick = () => {
-      softbox.classList.add('hidden');
-    };
-    let lastImage;
-    images.forEach(image => image.addEventListener('click', () => { lastImage = image; softbox.focus(); }));
-    document.addEventListener('keydown', event => {
-      if (softbox.classList.contains('hidden')) return;
-      if (event.key === 'Escape') { softbox.classList.add('hidden'); lastImage?.focus(); }
-      if (event.key === 'Tab') { event.preventDefault(); closeBtn.focus(); }
-    });
+        content.style.transform = '';
+      }
+      touchStart = undefined;
+    }, { passive: true });
+    softbox.addEventListener('touchcancel', () => { touchStart = undefined; content.style.transform = ''; });
     images.forEach(image => {
       image.tabIndex = 0;
       image.setAttribute('role', 'button');
+      image.setAttribute('aria-haspopup', 'dialog');
+      image.onclick = () => showPainting(image.closest<HTMLElement>('.art-card')!);
       image.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); image.click(); }
       });
     });
-    // Close softbox if click away
-    if (softbox) {
-      softbox.addEventListener('click', (e) => {
-        if (e.target === softbox) {
-          softbox.classList.add('hidden');
-        }
-      });
-    }
   });
 </script>
 
 <style>
+  #softbox { overflow-x: hidden; }
+  #painting-content { overflow-wrap: anywhere; }
+  #softbox::backdrop { background: #000b; }
+  .image-thumbnails { display: flex; gap: .5rem; max-width: 100%; overflow-x: auto; padding: .25rem; }
+  .image-thumbnails :global(button) { flex-shrink: 0; border: 2px solid transparent; border-radius: .375rem; padding: .2rem; }
+  .image-thumbnails :global(button[aria-pressed='true']) { border-color: #3b82f6; }
+  .image-thumbnails :global(img) { width: 4rem; height: 4rem; object-fit: cover; border-radius: .25rem; }
+  .viewer-toolbar { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem; border-bottom: 1px solid #737373; }
+  .painting-navigation { display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; }
+  .viewer-close-row { display: flex; justify-content: flex-end; padding-bottom: .5rem; }
+  #softbox-close { background: white; color: #171717; display: grid; place-items: center; flex-shrink: 0; width: 2.75rem; height: 2.75rem; font-size: 1.75rem; border-radius: .5rem; }
+  #softbox-close:hover { background: #e5e5e5; }
+  .painting-navigation button { border: 1px solid #737373; border-radius: .5rem; padding: .65rem; font-size: .875rem; }
+  .painting-navigation button:disabled { opacity: .5; cursor: default; }
   [hidden] { display: none !important; }
   .filter-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; margin-bottom: .75rem; }
   details { position: relative; }

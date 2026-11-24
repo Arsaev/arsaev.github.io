@@ -21,7 +21,8 @@ const art = defineCollection({
         dimensions: z.string(),
         year: z.number(),
         month: z.number(),
-        heroImage: z.string(),
+        heroImage: z.string().min(1),
+        closeups: z.array(z.object({ src: z.string().min(1), alt: z.string().min(1) })).default([]),
         author: z.string(),
         text: z.string(),
         status: z.string().optional(), // Sold/Available; missing status means available.
