@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="editor-token" content="__TOKEN__">
+  <title>Add a painting · Mago</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0 auto; padding: 2rem 1rem; max-width: 58rem; font: 1rem/1.5 system-ui, sans-serif; color: #202020; background: #fafafa; }
+    h1 { margin-bottom: .25rem; } h2 { font-size: 1.1rem; }
+    .hint { color: #555; margin-top: 0; font-size: .9rem; }
+    fieldset { border: 1px solid #ccc; border-radius: .75rem; padding: 1.25rem; margin: 1.5rem 0; background: white; min-width: 0; }
+    legend { font-weight: 600; padding: 0 .4rem; }
+    label { display: block; margin-bottom: 1rem; }
+    input, select, textarea, button { font: inherit; }
+    input:not([type=file]), select, textarea { display: block; width: 100%; padding: .65rem; margin-top: .3rem; border: 1px solid #888; border-radius: .4rem; background: white; color: inherit; }
+    textarea { resize: vertical; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.25rem; }
+    .drop { border: 2px dashed #888; border-radius: .6rem; padding: 1rem; margin: .75rem 0; }
+    .drop.drag { border-color: #2557bc; background: #edf3ff; }
+    input[type=file] { max-width: 100%; }
+    img { width: 7rem; height: 7rem; object-fit: contain; background: #eee; border-radius: .4rem; }
+    .photo { display: flex; gap: 1rem; align-items: start; margin: 1rem 0; }
+    .photo label { flex: 1; } .photo button { padding: .4rem; }
+    button { padding: .7rem 1rem; border: 1px solid #555; border-radius: .4rem; background: white; color: inherit; cursor: pointer; }
+    button[type=submit] { background: #202020; color: white; }
+    button:disabled { opacity: .6; cursor: default; }
+    :focus-visible { outline: 3px solid #447be6; outline-offset: 3px; }
+    #result { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem 0; }
+    @media (max-width: 36rem) { .grid { grid-template-columns: 1fr; } .photo { flex-wrap: wrap; } .photo label { min-width: 12rem; } }
+  </style>
+  <script src="/editor.js" defer></script>
+</head>
+<body>
+  <h1>Add a painting</h1>
+  <p class="hint">Mago’s local studio · Saves images and painting details to this checkout.</p>
+  <form id="art-form">
+    <fieldset>
+      <legend>Painting details</legend>
+      <label>Title<input name="name" required maxlength="200" autofocus></label>
+      <div class="grid">
+        <label>Medium / material<input name="medium" list="mediums" required maxlength="200" placeholder="Oil"><datalist id="mediums"></datalist></label>
+        <label>Dimensions<input name="dimensions" required maxlength="200" placeholder="30 × 40 cm"></label>
+        <label>Date<input name="date" type="month" required min="1000-01" max="9999-12"></label>
+        <label>Author<input name="author" required maxlength="200" value="Mago"></label>
+        <label>Availability<select name="status"><option>Available</option><option>Sold</option></select></label>
+        <label>Visibility<select name="visibility"><option value="public">Public</option><option value="private">Private · password unlock</option></select></label>
+      </div>
+      <label>Description<textarea name="text" rows="4" maxlength="10000" required></textarea></label>
+    </fieldset>
+    <fieldset>
+      <legend>Images</legend>
+      <p class="hint">JPEG, PNG, WebP or GIF. Up to 20 MB per image, 100 MB total. Files are copied at their original quality.</p>
+      <div class="drop" id="preview-drop">
+        <label>Preview image · required<input id="preview-input" type="file" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+        <p class="hint">Drop one image here, or choose a file. This is the main gallery image.</p>
+        <div id="preview-photo"></div>
+      </div>
+      <div class="drop" id="closeups-drop">
+        <label>Close-ups · optional<input id="closeups-input" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif"></label>
+        <p class="hint">Drop extra images here. They appear in the order added, up to 20 close-ups.</p>
+      </div>
+      <div id="closeup-photos"></div>
+    </fieldset>
+    <button type="submit">Save painting to repository</button>
+    <button type="reset">Add another / clear form</button>
+    <p id="result" role="status" aria-live="polite"></p>
+  </form>
+</body>
+</html>

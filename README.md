@@ -61,3 +61,13 @@ closeups:
 ```
 
 Choose thumbnails to inspect details. Use Previous/Next painting, Left/Right keys, or swipe horizontally across the viewer to browse paintings without closing the viewer. Navigation wraps and follows the visible gallery's filters, date order and homepage limit. Escape closes the viewer.
+
+## Add art with a local form
+
+Run `npm run art:add`, then open **http://127.0.0.1:4322**. Fill in the painting details, drop a preview image and any close-ups, describe the close-ups, and save. Medium suggestions come from existing paintings; you can also enter a new one.
+
+The tool writes Markdown into `src/content/art/` and copies original images into `public/artworks/<medium folder>/<painting slug>/`. Existing medium folders are reused where possible. Existing paintings are never overwritten. Review the new files with Git, preview the site with `npm run dev`, then commit as usual. No files are committed or published automatically.
+
+The editor runs separately from Astro, binds only to `127.0.0.1`, and is excluded from the published site. Stop it with Ctrl-C. It needs Node.js 22 or later. Accepted images: JPEG, PNG, WebP and GIF, up to 20 MB each and 100 MB total; up to 20 close-ups per painting.
+
+Check saving and local-only request validation with `node scripts/check-art-editor.mjs`.

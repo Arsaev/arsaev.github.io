@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
+    "art:add": "node scripts/art-editor.mjs",
     "dev": "astro dev --host",
     "start": "astro dev",
     "build": "astro build",
