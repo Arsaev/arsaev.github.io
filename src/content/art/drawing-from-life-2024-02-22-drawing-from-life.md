@@ -5,6 +5,6 @@ dimensions: ""
 year: 2024
 month: 2
 heroImage: "/artworks/Drawing from life/2024-02-22-Sanguine on paper-Drawing from life.jpeg"
-author: "Mago Arsaev"
+author: "Mago"
 text: "Drawing from life created on February 22, 2024 using Sanguine on paper."
 ---
